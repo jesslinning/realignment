@@ -7,6 +7,20 @@ from services.standings_service import get_standings, get_available_seasons
 
 app = FastAPI(title="NFL Standings API")
 
+# allow requests from Railway frontend URL
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://your-frontend.railway.app",  # Add your Railway frontend URL
+        "*"  # Or just use this for now (less secure but easier for testing)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
