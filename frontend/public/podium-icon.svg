@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Podium base -->
+  <rect x="10" y="70" width="80" height="20" fill="#013369" rx="3"/>
+  
+  <!-- Third place podium -->
+  <rect x="15" y="55" width="20" height="15" fill="#D50A0A" rx="2"/>
+  <text x="25" y="67" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">3</text>
+  
+  <!-- First place podium (tallest) -->
+  <rect x="40" y="35" width="20" height="35" fill="#FFB612" rx="2"/>
+  <text x="50" y="57" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#013369" text-anchor="middle">1</text>
+  
+  <!-- Second place podium -->
+  <rect x="65" y="45" width="20" height="25" fill="#D50A0A" rx="2"/>
+  <text x="75" y="60" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">2</text>
+</svg>
+

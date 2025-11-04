@@ -1,0 +1,115 @@
+.conference-standings {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.conference-standings-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #013369;
+  font-weight: 600;
+  border-bottom: 3px solid #D50A0A;
+  padding-bottom: 0.5rem;
+}
+
+.conference-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.conference-standings-table thead {
+  background-color: #013369;
+  color: white;
+}
+
+.conference-standings-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.conference-standings-table th:first-child {
+  padding-left: 1rem;
+}
+
+.conference-standings-table th:last-child {
+  padding-right: 1rem;
+}
+
+.conference-standings-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.conference-standings-table tbody tr:hover {
+  background-color: #f0f0f0;
+}
+
+.conference-standings-table tbody tr.leader {
+  background-color: #fff8e1;
+  font-weight: 600;
+  border-left: 3px solid #FFB612;
+}
+
+.conference-standings-table tbody tr.leader:hover {
+  background-color: #ffe082;
+}
+
+.conference-standings-table td {
+  padding: 0.75rem 0.5rem;
+}
+
+.conference-standings-table td:first-child {
+  padding-left: 1rem;
+}
+
+.conference-standings-table td:last-child {
+  padding-right: 1rem;
+}
+
+.conference-standings-table .rank {
+  font-weight: 600;
+  color: #666;
+  width: 60px;
+}
+
+.conference-standings-table .team-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.conference-standings-table .team-abbr {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #333;
+}
+
+.conference-standings-table .team-full {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.conference-standings-table .division-name {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.conference-standings-table .win-pct {
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.conference-standings-table tbody td:not(.team-name):not(.rank):not(.win-pct):not(.division-name) {
+  text-align: center;
+}
+
+.conference-standings-table .win-pct {
+  text-align: right;
+}
+

@@ -1,0 +1,112 @@
+.division-standings {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  min-width: 0; /* Allows grid item to shrink below content size */
+}
+
+.division-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.standings-table thead {
+  background-color: #013369;
+  color: white;
+}
+
+.standings-table th {
+  padding: 0.5rem 0.25rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.standings-table th:first-child {
+  padding-left: 1rem;
+}
+
+.standings-table th:last-child {
+  padding-right: 1rem;
+}
+
+.standings-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.standings-table tbody tr:hover {
+  background-color: #f0f0f0;
+}
+
+.standings-table tbody tr.leader {
+  background-color: #fff8e1;
+  font-weight: 600;
+  border-left: 3px solid #FFB612;
+}
+
+.standings-table tbody tr.leader:hover {
+  background-color: #ffe082;
+}
+
+.standings-table td {
+  padding: 0.5rem 0.25rem;
+}
+
+.standings-table td:first-child {
+  padding-left: 1rem;
+}
+
+.standings-table td:last-child {
+  padding-right: 1rem;
+}
+
+.rank {
+  font-weight: 600;
+  color: #666;
+  width: 50px;
+}
+
+.team-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.team-abbr {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.team-full {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.win-pct {
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.standings-table tbody td {
+  text-align: left;
+}
+
+.standings-table tbody td:not(.team-name):not(.rank):not(.win-pct) {
+  text-align: center;
+}
+
+.win-pct {
+  text-align: right;
+}
+
