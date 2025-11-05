@@ -5,3 +5,4 @@ numpy==1.26.4
 nflreadpy==0.1.4
 sqlalchemy==2.0.36
 psycopg[binary]==3.2.12
+pyarrow==22.0.0
