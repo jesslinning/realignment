@@ -10,15 +10,27 @@ from services.standings_service import get_standings, get_available_seasons
 
 app = FastAPI(title="NFL Standings API")
 
-# allow requests from Railway frontend URL
+# Configure CORS - allow requests from frontend
+# Get frontend URL from environment variable, or use wildcard for development
+frontend_url = os.getenv('FRONTEND_URL', '*')
+allow_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
+# Add production frontend URL if specified (should include https://)
+if frontend_url and frontend_url != '*':
+    # Handle both with and without https://
+    if not frontend_url.startswith('http'):
+        frontend_url = f"https://{frontend_url}"
+    allow_origins.append(frontend_url)
+else:
+    # Use wildcard if not specified (less secure but works for development)
+    allow_origins.append("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "frontend-service-production-25cd.up.railway.app",  # Add your Railway frontend URL
-        "*"  # Or just use this for now (less secure but easier for testing)
-    ],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
