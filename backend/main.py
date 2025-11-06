@@ -74,32 +74,74 @@ async def startup_event():
     init_db()
     
     # Configure scheduler based on environment variable
-    # Default: Run daily at 3:00 AM UTC
+    # Default: NFL game schedule - multiple runs on game days
     # Format: "hour minute" (e.g., "3 0" for 3:00 AM) or cron expression
-    refresh_schedule = os.getenv('REFRESH_SCHEDULE', '3 0')
+    # For multiple schedules, use comma-separated cron expressions
+    refresh_schedule = os.getenv('REFRESH_SCHEDULE', 'nfl_schedule')
     
-    # Check if it's a simple "hour minute" format or full cron expression
-    if ' ' in refresh_schedule and len(refresh_schedule.split()) == 2:
-        # Simple format: "hour minute" -> convert to cron
-        hour, minute = refresh_schedule.split()
-        cron_expr = f"{minute} {hour} * * *"
+    if refresh_schedule == 'nfl_schedule':
+        # NFL-optimized schedule: Run multiple times on game days
+        # Thursday: 4:30 AM UTC (after Thursday Night Football ~11:30 PM ET)
+        # Sunday: 9:00 PM, 12:30 AM, 4:30 AM UTC (after early, late, and SNF games)
+        # Monday: 4:15 AM UTC (after Monday Night Football ~11:15 PM ET)
+        # Other days: 3:00 AM UTC (daily maintenance)
+        schedules = [
+            ("0 3 * * 0,1,2,5,6", "Daily maintenance"),  # Every day except Thursday (Thu has TNF update)
+            ("30 4 * * 4", "After Thursday Night Football"),  # Thursday 4:30 AM UTC
+            ("0 21 * * 0", "After Sunday early games"),  # Sunday 9:00 PM UTC (after 1 PM ET games)
+            ("30 0 * * 1", "After Sunday late games"),  # Monday 12:30 AM UTC (after 4:25 PM ET games)
+            ("30 4 * * 1", "After Sunday Night Football"),  # Monday 4:30 AM UTC (after 8:20 PM ET SNF)
+            ("15 4 * * 2", "After Monday Night Football"),  # Tuesday 4:15 AM UTC (after 8:15 PM ET MNF)
+        ]
+        
+        for i, (cron_expr, description) in enumerate(schedules):
+            scheduler.add_job(
+                refresh_standings_job,
+                trigger=CronTrigger.from_crontab(cron_expr),
+                id=f'refresh_standings_{i}',
+                name=f'Refresh NFL Standings - {description}',
+                replace_existing=True
+            )
+            print(f"Scheduled: {description} - cron: {cron_expr}")
     else:
-        # Assume it's already a cron expression (minute hour day month day_of_week)
-        cron_parts = refresh_schedule.split()
-        if len(cron_parts) == 5:
-            cron_expr = refresh_schedule
+        # Check if it's a simple "hour minute" format or full cron expression
+        if ' ' in refresh_schedule and len(refresh_schedule.split()) == 2:
+            # Simple format: "hour minute" -> convert to cron
+            hour, minute = refresh_schedule.split()
+            cron_expr = f"{minute} {hour} * * *"
+            print(f"Scheduling standings refresh with cron: {cron_expr}")
+            scheduler.add_job(
+                refresh_standings_job,
+                trigger=CronTrigger.from_crontab(cron_expr),
+                id='refresh_standings',
+                name='Refresh NFL Standings',
+                replace_existing=True
+            )
         else:
-            # Default fallback
-            cron_expr = "0 3 * * *"
+            # Assume it's already a cron expression (minute hour day month day_of_week)
+            cron_parts = refresh_schedule.split()
+            if len(cron_parts) == 5:
+                cron_expr = refresh_schedule
+                print(f"Scheduling standings refresh with cron: {cron_expr}")
+                scheduler.add_job(
+                    refresh_standings_job,
+                    trigger=CronTrigger.from_crontab(cron_expr),
+                    id='refresh_standings',
+                    name='Refresh NFL Standings',
+                    replace_existing=True
+                )
+            else:
+                # Default fallback
+                cron_expr = "0 3 * * *"
+                print(f"Invalid schedule format, using default: {cron_expr}")
+                scheduler.add_job(
+                    refresh_standings_job,
+                    trigger=CronTrigger.from_crontab(cron_expr),
+                    id='refresh_standings',
+                    name='Refresh NFL Standings',
+                    replace_existing=True
+                )
     
-    print(f"Scheduling standings refresh with cron: {cron_expr}")
-    scheduler.add_job(
-        refresh_standings_job,
-        trigger=CronTrigger.from_crontab(cron_expr),
-        id='refresh_standings',
-        name='Refresh NFL Standings',
-        replace_existing=True
-    )
     scheduler.start()
     print("✓ Scheduler started")
 
