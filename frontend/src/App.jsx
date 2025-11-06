@@ -3,7 +3,15 @@ import StandingsDisplay from './components/StandingsDisplay'
 import './App.css'
 
 function App() {
-  const API_URL = import.meta.env.VITE_API_URL || '';
+  // Get API URL from environment variable, remove trailing slash if present
+  const rawApiUrl = import.meta.env.VITE_API_URL || '';
+  const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  
+  // Log API URL in development to help debug
+  if (import.meta.env.DEV) {
+    console.log('API_URL:', API_URL || '(empty - will use relative paths)');
+  }
+  
   const [standings, setStandings] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -33,7 +41,16 @@ function App() {
 
   const fetchAvailableSeasons = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/seasons`)
+      const url = `${API_URL}/api/seasons`;
+      console.log('Fetching seasons from:', url);
+      const response = await fetch(url)
+      
+      // Check if response is HTML (error case - likely hitting frontend instead of backend)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        throw new Error(`Received HTML instead of JSON. Check that VITE_API_URL is set correctly. Current API_URL: "${API_URL}"`);
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch available seasons')
       }
@@ -57,7 +74,16 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_URL}/api/standings?season=${season}`)
+      const url = `${API_URL}/api/standings?season=${season}`;
+      console.log('Fetching standings from:', url);
+      const response = await fetch(url)
+      
+      // Check if response is HTML (error case - likely hitting frontend instead of backend)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        throw new Error(`Received HTML instead of JSON. Check that VITE_API_URL is set correctly. Current API_URL: "${API_URL}"`);
+      }
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.detail || `Server error: ${response.status} ${response.statusText}`)
@@ -65,9 +91,11 @@ function App() {
       const data = await response.json()
       setStandings(data)
     } catch (err) {
-      // Check if it's a network error (backend not running)
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        setError('Cannot connect to backend server. Make sure the backend is running on http://localhost:8000')
+      // Check if it's a JSON parse error (likely got HTML)
+      if (err.message.includes('JSON') || err.message.includes('Unexpected token')) {
+        setError(`Configuration error: Frontend is trying to fetch from itself. Please set VITE_API_URL environment variable to your backend URL (e.g., https://your-backend.up.railway.app)`)
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        setError(`Cannot connect to backend server at ${API_URL || '(not configured)'}. Make sure VITE_API_URL is set in Railway environment variables.`)
       } else {
         setError(err.message)
       }
