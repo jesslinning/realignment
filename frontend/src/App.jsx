@@ -3,6 +3,7 @@ import StandingsDisplay from './components/StandingsDisplay'
 import './App.css'
 
 function App() {
+  const API_URL = import.meta.env.VITE_API_URL || '';
   const [standings, setStandings] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -32,7 +33,7 @@ function App() {
 
   const fetchAvailableSeasons = async () => {
     try {
-      const response = await fetch('/api/seasons')
+      const response = await fetch(`${API_URL}/api/seasons`)
       if (!response.ok) {
         throw new Error('Failed to fetch available seasons')
       }
@@ -56,7 +57,7 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/standings?season=${season}`)
+      const response = await fetch(`${API_URL}/api/standings?season=${season}`)
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.detail || `Server error: ${response.status} ${response.statusText}`)
