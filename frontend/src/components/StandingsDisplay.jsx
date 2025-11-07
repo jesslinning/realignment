@@ -3,6 +3,41 @@ import DivisionStandings from './DivisionStandings'
 import ConferenceStandings from './ConferenceStandings'
 import './StandingsDisplay.css'
 
+// Define custom division order for each conference
+const divisionOrder = {
+  'Animals': ['Birds of Prey', 'Cats', 'Surf & Turf', 'North America'],
+  'People': ['People', 'People with Jobs', 'Violent People', 'Fictional People']
+}
+
+// Get divisions in the correct order for a conference
+const getOrderedDivisions = (conference, standings) => {
+  if (!conference || !standings[conference]) return []
+  
+  const divisions = Object.keys(standings[conference])
+  const customOrder = divisionOrder[conference] || []
+  
+  if (customOrder.length === 0) {
+    // No custom order, return sorted alphabetically
+    return divisions.sort()
+  }
+  
+  // Sort divisions according to custom order
+  return divisions.sort((a, b) => {
+    const indexA = customOrder.indexOf(a)
+    const indexB = customOrder.indexOf(b)
+    
+    // If both are in custom order, sort by their position
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB
+    }
+    // If only one is in custom order, it comes first
+    if (indexA !== -1) return -1
+    if (indexB !== -1) return 1
+    // If neither is in custom order, sort alphabetically
+    return a.localeCompare(b)
+  })
+}
+
 function StandingsDisplay({ standings }) {
   const conferences = Object.keys(standings).sort()
   const [activeConference, setActiveConference] = useState(conferences[0] || '')
@@ -14,12 +49,18 @@ function StandingsDisplay({ standings }) {
     }
   }, [conferences, activeConference])
 
+  // Get ordered divisions for the active conference
+  const orderedDivisions = useMemo(() => {
+    return getOrderedDivisions(activeConference, standings)
+  }, [activeConference, standings])
+
   // Combine all teams from all divisions in the active conference
   const allConferenceTeams = useMemo(() => {
     if (!activeConference || !standings[activeConference]) return []
     
     const allTeams = []
-    Object.keys(standings[activeConference]).forEach((division) => {
+    
+    orderedDivisions.forEach((division) => {
       standings[activeConference][division].forEach((team) => {
         allTeams.push({
           ...team,
@@ -29,7 +70,7 @@ function StandingsDisplay({ standings }) {
     })
     
     return allTeams
-  }, [activeConference, standings])
+  }, [activeConference, standings, orderedDivisions])
 
   if (conferences.length === 0) {
     return <div className="standings-display">No standings available</div>
@@ -52,7 +93,7 @@ function StandingsDisplay({ standings }) {
       <div className="conference-content">
         <div className="conference">
           <div className="divisions">
-            {Object.keys(standings[activeConference]).map((division) => (
+            {orderedDivisions.map((division) => (
               <DivisionStandings
                 key={division}
                 conference={activeConference}
