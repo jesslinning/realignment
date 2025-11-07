@@ -138,7 +138,7 @@ function App() {
       <main>
         {loading && <div className="loading">Loading standings...</div>}
         {error && <div className="error">Error: {error}</div>}
-        {standings && !loading && <StandingsDisplay standings={standings} />}
+        {standings && !loading && <StandingsDisplay standings={standings} season={season} API_URL={API_URL} />}
       </main>
     </div>
   )

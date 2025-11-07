@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from database import init_db, get_db_session
 from services.standings_service import get_standings, get_available_seasons
+from services.game_scores_service import get_game_scores
 
 app = FastAPI(title="NFL Standings API")
 
@@ -214,6 +215,51 @@ async def seasons():
 @app.get("/api/health")
 async def health():
     return {"status": "healthy"}
+
+@app.get("/api/game-scores")
+async def game_scores(team: str, season: int):
+    """
+    Get all game scores for a specific team and season.
+    
+    Args:
+        team: Team abbreviation (e.g., 'DAL', 'KC')
+        season: Season year (e.g., 2024)
+    
+    Returns:
+        List of game scores for the team in the specified season.
+    """
+    try:
+        if not team or len(team) < 2 or len(team) > 3:
+            raise HTTPException(
+                status_code=400,
+                detail="Team must be a 2-3 letter abbreviation (e.g., 'DAL', 'KC', 'SF')"
+            )
+        
+        scores = get_game_scores(team, season)
+        
+        if not scores:
+            return {
+                "team": team.upper(),
+                "season": season,
+                "game_scores": [],
+                "message": f"No game scores found for {team.upper()} in season {season}"
+            }
+        
+        return {
+            "team": team.upper(),
+            "season": season,
+            "game_scores": scores,
+            "total_games": len(scores)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in game-scores endpoint: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching game scores: {str(e)}"
+        )
 
 @app.post("/api/refresh")
 async def refresh_standings():

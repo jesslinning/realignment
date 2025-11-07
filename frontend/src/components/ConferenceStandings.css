@@ -4,6 +4,9 @@
   padding: 1.5rem;
   margin-top: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .conference-standings-title {
@@ -17,6 +20,7 @@
 
 .conference-standings-table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
@@ -46,7 +50,7 @@
   transition: background-color 0.2s;
 }
 
-.conference-standings-table tbody tr:hover {
+.conference-standings-table tbody tr:not(.clickable-row):hover {
   background-color: #f0f0f0;
 }
 
@@ -56,8 +60,17 @@
   border-left: 3px solid #FFB612;
 }
 
-.conference-standings-table tbody tr.leader:hover {
+.conference-standings-table tbody tr.leader:not(.clickable-row):hover {
   background-color: #ffe082;
+}
+
+.conference-standings-table tbody tr.leader.clickable-row:hover {
+  background-color: #ffe082 !important;
+}
+
+.conference-standings-table tbody tr.leader.clickable-row.expanded {
+  background-color: #fff8e1;
+  border-left: 3px solid #FFB612;
 }
 
 .conference-standings-table td {
@@ -111,5 +124,202 @@
 
 .conference-standings-table .win-pct {
   text-align: right;
+}
+
+/* Clickable row styles */
+.conference-standings-table tbody tr.clickable-row {
+  transition: background-color 0.2s;
+}
+
+.conference-standings-table tbody tr.clickable-row:hover {
+  background-color: #e8f4f8 !important;
+}
+
+.conference-standings-table tbody tr.clickable-row.expanded {
+  background-color: #f0f8ff;
+  border-left: 3px solid #013369;
+}
+
+.conference-standings-table tbody tr.clickable-row.expanded:hover {
+  background-color: #e0f0ff !important;
+}
+
+/* Expandable team name styles */
+.conference-standings-table .team-name {
+  position: relative;
+}
+
+.conference-standings-table .team-name.expanded {
+  font-weight: 700;
+}
+
+.expand-icon {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.conference-standings-table tbody tr.clickable-row:hover .team-name {
+  color: #013369;
+}
+
+.conference-standings-table tbody tr.clickable-row:hover .expand-icon {
+  color: #013369;
+}
+
+/* Game scores expandable row */
+.game-scores-row {
+  background-color: #f8f9fa;
+}
+
+.game-scores-cell {
+  padding: 0 !important;
+  border-top: 2px solid #e0e0e0;
+}
+
+.game-scores-container {
+  padding: 1rem;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.loading-scores,
+.no-scores {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.no-scores-hint {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  color: #999;
+}
+
+/* Nested game scores table */
+.game-scores-table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: white;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.game-scores-table thead {
+  background-color: #f0f0f0;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.game-scores-table th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.game-scores-table tbody tr {
+  border-bottom: 1px solid #e8e8e8;
+  transition: background-color 0.15s;
+}
+
+.game-scores-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.game-scores-table tbody tr.win {
+  background-color: #e8f5e9;
+}
+
+.game-scores-table tbody tr.win:hover {
+  background-color: #c8e6c9;
+}
+
+.game-scores-table tbody tr.loss {
+  background-color: #ffebee;
+}
+
+.game-scores-table tbody tr.loss:hover {
+  background-color: #ffcdd2;
+}
+
+.game-scores-table tbody tr.tie {
+  background-color: #fff3e0;
+}
+
+.game-scores-table tbody tr.tie:hover {
+  background-color: #ffe0b2;
+}
+
+.game-scores-table td {
+  padding: 0.5rem 0.75rem;
+}
+
+.game-scores-table .score {
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+}
+
+.game-scores-table .result {
+  font-weight: 700;
+  text-align: center;
+  width: 50px;
+  color: #333;
+}
+
+.game-scores-table .opponent {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .conference-standings {
+    padding: 1rem;
+  }
+  
+  .conference-standings-title {
+    font-size: 1.2rem;
+  }
+  
+  .conference-standings-table {
+    font-size: 0.85rem;
+  }
+  
+  .conference-standings-table th,
+  .conference-standings-table td {
+    padding: 0.5rem 0.3rem;
+  }
+  
+  .conference-standings-table th:first-child,
+  .conference-standings-table td:first-child {
+    padding-left: 0.5rem;
+  }
+  
+  .conference-standings-table th:last-child,
+  .conference-standings-table td:last-child {
+    padding-right: 0.5rem;
+  }
+  
+  .game-scores-container {
+    padding: 0.75rem;
+  }
+  
+  .game-scores-table {
+    font-size: 0.8rem;
+  }
+  
+  .game-scores-table th,
+  .game-scores-table td {
+    padding: 0.4rem 0.5rem;
+  }
 }
 

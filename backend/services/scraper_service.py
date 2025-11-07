@@ -4,7 +4,7 @@ import nflreadpy as nfl
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from models import TeamStanding, TeamRealignment, ScrapeLog
+from models import TeamStanding, TeamRealignment, ScrapeLog, TeamGameScore
 from database import get_db_session
 
 # Realignment data - teams organized into custom conferences and divisions
@@ -60,15 +60,15 @@ def initialize_realignment(db: Session):
     db.commit()
 
 
-def calculate_standings_from_scores(scores: pd.DataFrame) -> pd.DataFrame:
+def create_game_scores_dataframe(scores: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate NFL standings from game scores DataFrame.
+    Transform game scores DataFrame into one row per team per game.
     
     Args:
         scores: DataFrame with game data from nflreadpy
     
     Returns:
-        DataFrame with standings including wins, losses, ties, and win percentage.
+        DataFrame with columns: season, gameday, gametime, team, opponent, score, opponent_score, is_win, is_loss, is_tie
     """
     scores['gameday'] = pd.to_datetime(scores['gameday'])
     
@@ -80,46 +80,53 @@ def calculate_standings_from_scores(scores: pd.DataFrame) -> pd.DataFrame:
     ]
     
     if scores.empty:
+        return pd.DataFrame(columns=['season', 'gameday', 'gametime', 'team', 'opponent', 'score', 'opponent_score', 'is_win', 'is_loss', 'is_tie'])
+    
+    # Create one row per team per game using the new approach
+    sides = [('home', 'away'), ('away', 'home')]
+    long_scores = pd.DataFrame()
+    
+    for side1, side2 in sides:
+        side_scores = scores.copy()
+        side_scores['team'] = side_scores[f'{side1}_team']
+        side_scores['opponent'] = side_scores[f'{side2}_team']
+        side_scores['score'] = side_scores[f'{side1}_score']
+        side_scores['opponent_score'] = side_scores[f'{side2}_score']
+        
+        # Determine wins, losses, and ties based on score comparison
+        side_scores['is_win'] = (side_scores['score'] > side_scores['opponent_score']).astype(int)
+        side_scores['is_loss'] = (side_scores['score'] < side_scores['opponent_score']).astype(int)
+        side_scores['is_tie'] = (side_scores['score'] == side_scores['opponent_score']).astype(int)
+        
+        keep_cols = ['season', 'gameday', 'gametime', 'team', 'opponent', 'score', 'opponent_score', 'is_win', 'is_loss', 'is_tie']
+        long_scores = pd.concat([long_scores, side_scores[keep_cols]], ignore_index=True)
+    
+    # Ensure proper data types
+    long_scores['season'] = long_scores['season'].astype(int)
+    long_scores['score'] = long_scores['score'].astype(int)
+    long_scores['opponent_score'] = long_scores['opponent_score'].astype(int)
+    long_scores['is_win'] = long_scores['is_win'].astype(int)
+    long_scores['is_loss'] = long_scores['is_loss'].astype(int)
+    long_scores['is_tie'] = long_scores['is_tie'].astype(int)
+    
+    return long_scores
+
+
+def calculate_standings_from_scores(game_scores: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate NFL standings from game scores DataFrame.
+    
+    Args:
+        game_scores: DataFrame with one row per team per game (from create_game_scores_dataframe)
+    
+    Returns:
+        DataFrame with standings including wins, losses, ties, and win percentage.
+    """
+    if game_scores.empty:
         return pd.DataFrame(columns=['season', 'team', 'is_win', 'is_loss', 'is_tie', 'pct'])
     
-    # Convert to one row per team per game
-    long_scores = pd.melt(
-        scores, 
-        id_vars=['away_team', 'home_team', 'season', 'gameday', 'result'], 
-        value_vars=['away_score', 'home_score'], 
-        value_name='score'
-    )
-    long_scores['team'] = long_scores['home_team'].where(
-        long_scores['variable'] == 'home_score', 
-        long_scores['away_team']
-    )
-    
-    # Determine wins, losses, and ties
-    long_scores['is_win'] = 0
-    long_scores['is_loss'] = 0
-    long_scores['is_tie'] = 0
-    
-    # Wins: home team wins if result > 0, away team wins if result < 0
-    long_scores.loc[
-        ((long_scores['variable'] == 'home_score') & (long_scores['result'] > 0)) 
-        | ((long_scores['variable'] == 'away_score') & (long_scores['result'] < 0)),
-        'is_win'
-    ] = 1
-    
-    # Losses: home team loses if result < 0, away team loses if result > 0
-    long_scores.loc[
-        ((long_scores['variable'] == 'home_score') & (long_scores['result'] < 0)) 
-        | ((long_scores['variable'] == 'away_score') & (long_scores['result'] > 0)),
-        'is_loss'
-    ] = 1
-    
-    # Ties: result == 0
-    long_scores.loc[long_scores['result'] == 0, 'is_tie'] = 1
-    
-    long_scores.drop(columns=['away_team', 'home_team'], inplace=True)
-    
     # Calculate standings
-    standings = long_scores.groupby(['season', 'team'])[['is_win', 'is_loss', 'is_tie']].sum().reset_index()
+    standings = game_scores.groupby(['season', 'team'])[['is_win', 'is_loss', 'is_tie']].sum().reset_index()
     standings['pct'] = (standings['is_win'] + standings['is_tie'] / 2) / (
         standings['is_win'] + standings['is_loss'] + standings['is_tie']
     )
@@ -148,11 +155,51 @@ def scrape_season(season: Optional[int], db: Session) -> int:
         else:
             scores = nfl.load_schedules(seasons=season).to_pandas()  # Specific season
         
-        # Calculate standings
-        standings_df = calculate_standings_from_scores(scores)
+        # Create game scores dataframe
+        game_scores_df = create_game_scores_dataframe(scores)
         
-        if standings_df.empty:
+        if game_scores_df.empty:
             return 0
+        
+        # Save game scores to database
+        game_scores_updated = 0
+        for _, row in game_scores_df.iterrows():
+            # Check if this game score already exists
+            existing = db.query(TeamGameScore).filter(
+                TeamGameScore.season == int(row['season']),
+                TeamGameScore.gameday == row['gameday'],
+                TeamGameScore.team == row['team']
+            ).first()
+            
+            if existing:
+                # Update existing record
+                existing.gametime = row['gametime'] if pd.notna(row['gametime']) else None
+                existing.score = int(row['score'])
+                existing.opponent = row['opponent']
+                existing.opponent_score = int(row['opponent_score'])
+                existing.is_win = int(row['is_win'])
+                existing.is_loss = int(row['is_loss'])
+                existing.is_tie = int(row['is_tie'])
+            else:
+                # Create new record
+                new_game_score = TeamGameScore(
+                    season=int(row['season']),
+                    gameday=row['gameday'],
+                    gametime=row['gametime'] if pd.notna(row['gametime']) else None,
+                    score=int(row['score']),
+                    team=row['team'],
+                    opponent=row['opponent'],
+                    opponent_score=int(row['opponent_score']),
+                    is_win=int(row['is_win']),
+                    is_loss=int(row['is_loss']),
+                    is_tie=int(row['is_tie'])
+                )
+                db.add(new_game_score)
+            
+            game_scores_updated += 1
+        
+        # Calculate standings from game scores
+        standings_df = calculate_standings_from_scores(game_scores_df)
         
         records_updated = 0
         for _, row in standings_df.iterrows():
@@ -204,15 +251,55 @@ def scrape_all_seasons(db: Session) -> dict:
         # Load all seasons
         scores = nfl.load_schedules(seasons=True).to_pandas()
         
-        # Calculate standings
-        standings_df = calculate_standings_from_scores(scores)
+        # Create game scores dataframe
+        game_scores_df = create_game_scores_dataframe(scores)
         
-        if standings_df.empty:
-            return {'success': False, 'error': 'No standings data found', 'records_updated': 0}
+        if game_scores_df.empty:
+            return {'success': False, 'error': 'No game scores data found', 'records_updated': 0}
         
-        # Get unique seasons
-        seasons = sorted(standings_df['season'].unique())
+        # Get unique seasons from game scores
+        seasons = sorted(game_scores_df['season'].unique())
         seasons_str = ','.join(map(str, seasons))
+        
+        # Save game scores to database
+        game_scores_updated = 0
+        for _, row in game_scores_df.iterrows():
+            # Check if this game score already exists
+            existing = db.query(TeamGameScore).filter(
+                TeamGameScore.season == int(row['season']),
+                TeamGameScore.gameday == row['gameday'],
+                TeamGameScore.team == row['team']
+            ).first()
+            
+            if existing:
+                # Update existing record
+                existing.gametime = row['gametime'] if pd.notna(row['gametime']) else None
+                existing.score = int(row['score'])
+                existing.opponent = row['opponent']
+                existing.opponent_score = int(row['opponent_score'])
+                existing.is_win = int(row['is_win'])
+                existing.is_loss = int(row['is_loss'])
+                existing.is_tie = int(row['is_tie'])
+            else:
+                # Create new record
+                new_game_score = TeamGameScore(
+                    season=int(row['season']),
+                    gameday=row['gameday'],
+                    gametime=row['gametime'] if pd.notna(row['gametime']) else None,
+                    score=int(row['score']),
+                    team=row['team'],
+                    opponent=row['opponent'],
+                    opponent_score=int(row['opponent_score']),
+                    is_win=int(row['is_win']),
+                    is_loss=int(row['is_loss']),
+                    is_tie=int(row['is_tie'])
+                )
+                db.add(new_game_score)
+            
+            game_scores_updated += 1
+        
+        # Calculate standings from game scores
+        standings_df = calculate_standings_from_scores(game_scores_df)
         
         records_updated = 0
         for _, row in standings_df.iterrows():

@@ -38,7 +38,7 @@ const getOrderedDivisions = (conference, standings) => {
   })
 }
 
-function StandingsDisplay({ standings }) {
+function StandingsDisplay({ standings, season, API_URL }) {
   const conferences = Object.keys(standings).sort()
   const [activeConference, setActiveConference] = useState(conferences[0] || '')
 
@@ -107,6 +107,8 @@ function StandingsDisplay({ standings }) {
         <ConferenceStandings
           conference={activeConference}
           teams={allConferenceTeams}
+          season={season}
+          API_URL={API_URL}
         />
       </div>
     </div>

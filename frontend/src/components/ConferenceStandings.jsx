@@ -1,10 +1,78 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './ConferenceStandings.css'
 
-function ConferenceStandings({ conference, teams }) {
+function ConferenceStandings({ conference, teams, season, API_URL }) {
+  const [expandedTeam, setExpandedTeam] = useState(null)
+  const [gameScores, setGameScores] = useState({})
+  const [loadingScores, setLoadingScores] = useState({})
+
+  // Clear expanded state when season changes
+  useEffect(() => {
+    setExpandedTeam(null)
+    setGameScores({})
+    setLoadingScores({})
+  }, [season])
+
   const formatWinPct = (pct) => {
     if (isNaN(pct) || pct === null) return '0.000'
     return pct.toFixed(3)
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    })
+  }
+
+  const handleTeamClick = async (team) => {
+    if (expandedTeam === team.team) {
+      // Collapse if already expanded
+      setExpandedTeam(null)
+      return
+    }
+
+    // Expand the clicked team
+    setExpandedTeam(team.team)
+
+    // If we already have the scores, don't fetch again
+    if (gameScores[team.team]) {
+      return
+    }
+
+    // Fetch game scores
+    if (!season) {
+      console.warn('No season available to fetch game scores')
+      return
+    }
+
+    setLoadingScores(prev => ({ ...prev, [team.team]: true }))
+    
+    try {
+      // Use API_URL if set, otherwise default to localhost:8000 for local development
+      const baseUrl = API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : '')
+      const url = `${baseUrl}/api/game-scores?team=${team.team}&season=${season}`
+      console.log('Fetching game scores from:', url)
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API error response:', errorText)
+        throw new Error(`Failed to fetch game scores: ${response.status} ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('Game scores response:', data)
+      setGameScores(prev => ({ ...prev, [team.team]: data.game_scores || [] }))
+    } catch (err) {
+      console.error('Error fetching game scores:', err)
+      setGameScores(prev => ({ ...prev, [team.team]: [] }))
+    } finally {
+      setLoadingScores(prev => ({ ...prev, [team.team]: false }))
+    }
   }
 
   // Sort teams by win percentage (descending)
@@ -26,20 +94,76 @@ function ConferenceStandings({ conference, teams }) {
           </tr>
         </thead>
         <tbody>
-          {sortedTeams.map((team, index) => (
-            <tr key={team.team} className={index === 0 ? 'leader' : ''}>
-              <td className="rank">{index + 1}</td>
-              <td className="team-name">
-                <span className="team-abbr">{team.team}</span>
-                <span className="team-full">{team.name}</span>
-              </td>
-              <td className="division-name">{team.division}</td>
-              <td>{team.wins}</td>
-              <td>{team.losses}</td>
-              <td>{team.ties}</td>
-              <td className="win-pct">{formatWinPct(team.win_pct)}</td>
-            </tr>
-          ))}
+          {sortedTeams.map((team, index) => {
+            const isExpanded = expandedTeam === team.team
+            const teamScores = gameScores[team.team] || []
+            const isLoading = loadingScores[team.team] || false
+
+            return (
+              <React.Fragment key={team.team}>
+                <tr 
+                  className={`${index === 0 ? 'leader' : ''} ${isExpanded ? 'expanded' : ''} clickable-row`}
+                  onClick={() => handleTeamClick(team)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td className="rank">{index + 1}</td>
+                  <td className={`team-name ${isExpanded ? 'expanded' : ''}`}>
+                    <span className="team-abbr">
+                      {team.team}
+                      <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+                    </span>
+                    <span className="team-full">{team.name}</span>
+                  </td>
+                  <td className="division-name">{team.division}</td>
+                  <td>{team.wins}</td>
+                  <td>{team.losses}</td>
+                  <td>{team.ties}</td>
+                  <td className="win-pct">{formatWinPct(team.win_pct)}</td>
+                </tr>
+                {isExpanded && (
+                  <tr className="game-scores-row">
+                    <td colSpan="7" className="game-scores-cell">
+                      {isLoading ? (
+                        <div className="loading-scores">Loading game scores...</div>
+                      ) : teamScores.length === 0 ? (
+                        <div className="no-scores">
+                          <div>No game scores available for {team.team} in {season}</div>
+                          <div className="no-scores-hint">Game scores will appear after running a data scrape.</div>
+                        </div>
+                      ) : (
+                        <div className="game-scores-container">
+                          <table className="game-scores-table">
+                            <thead>
+                              <tr>
+                                <th>Date</th>
+                                <th>Opponent</th>
+                                <th>Score</th>
+                                <th>Result</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamScores.map((game) => (
+                                <tr key={game.id} className={game.is_win ? 'win' : game.is_loss ? 'loss' : 'tie'}>
+                                  <td>{formatDate(game.gameday)}</td>
+                                  <td className="opponent">{game.opponent || '-'}</td>
+                                  <td className="score">
+                                    {game.score} - {game.opponent_score || '-'}
+                                  </td>
+                                  <td className="result">
+                                    {game.is_win ? 'W' : game.is_loss ? 'L' : 'T'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            )
+          })}
         </tbody>
       </table>
     </div>
