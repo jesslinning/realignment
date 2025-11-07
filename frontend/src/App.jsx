@@ -5,11 +5,20 @@ import './App.css'
 function App() {
   // Get API URL from environment variable, remove trailing slash if present
   const rawApiUrl = import.meta.env.VITE_API_URL || '';
-  const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  let API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
   
-  // Log API URL in development to help debug
-  if (import.meta.env.DEV) {
-    console.log('API_URL:', API_URL || '(empty - will use relative paths)');
+  // Ensure URL has protocol (https://) if it's not a relative path
+  // This is critical - without https://, browsers treat it as relative and it fails
+  if (API_URL && !API_URL.startsWith('http://') && !API_URL.startsWith('https://') && !API_URL.startsWith('/')) {
+    API_URL = `https://${API_URL}`;
+  }
+  
+  // Log API URL to help debug
+  console.log('VITE_API_URL (raw):', import.meta.env.VITE_API_URL || '(not set)');
+  console.log('API_URL (processed):', API_URL || '(empty - will use relative paths)');
+  
+  if (!API_URL) {
+    console.warn('⚠️ VITE_API_URL is not set - API calls will use relative paths and fail!');
   }
   
   const [standings, setStandings] = useState(null)
