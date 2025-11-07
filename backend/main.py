@@ -21,6 +21,8 @@ allow_credentials = True
 
 # Add production frontend URL if specified
 if frontend_url:
+    # Remove trailing slash if present (CORS requires exact match)
+    frontend_url = frontend_url.rstrip('/')
     # Handle both with and without https://
     if not frontend_url.startswith('http'):
         frontend_url = f"https://{frontend_url}"
