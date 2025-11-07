@@ -5,7 +5,7 @@ import './StandingsDisplay.css'
 
 // Define custom division order for each conference
 const divisionOrder = {
-  'Animals': ['Birds of Prey', 'Cats', 'Surf & Turf', 'North America'],
+  'Animals': ['Animals Who Eat Fish', 'Animals Who Eat Grass', "Birds Who Can't Swim", 'Cats'],
   'People': ['People', 'People with Jobs', 'Violent People', 'Fictional People']
 }
 

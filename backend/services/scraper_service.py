@@ -13,39 +13,46 @@ REALIGNMENT_DATA = [
     ['KC', 'People', 'People', 'Chiefs'],
     ['TB', 'People', 'Violent People', 'Buccaneers'],
     ['CIN', 'Animals', 'Cats', 'Bengals'],
-    ['MIA', 'Animals', 'Surf & Turf', 'Dolphins'],
+    ['MIA', 'Animals', 'Animals Who Eat Fish', 'Dolphins'],
     ['CAR', 'Animals', 'Cats', 'Panthers'],
     ['LV', 'People', 'Violent People', 'Raiders'],
-    ['ARI', 'Animals', 'North America', 'Cardinals'],
+    ['ARI', 'Animals', "Birds Who Can't Swim", 'Cardinals'],
     ['PIT', 'People', 'People with Jobs', 'Steelers'],
     ['NYG', 'People', 'Fictional People', 'Giants'],
     ['TEN', 'People', 'Fictional People', 'Titans'],
     ['SF', 'People', 'People with Jobs', '49ers'],
     ['DET', 'Animals', 'Cats', 'Lions'],
     ['HOU', 'People', 'People', 'Texans'],
-    ['BAL', 'Animals', 'Birds of Prey', 'Ravens'],
+    ['BAL', 'Animals', "Birds Who Can't Swim", 'Ravens'],
     ['MIN', 'People', 'Violent People', 'Vikings'],
     ['WAS', 'People', 'People with Jobs', 'Commanders'],
     ['CLE', 'People', 'People', 'Browns'],
     ['JAX', 'Animals', 'Cats', 'Jaguars'],
-    ['CHI', 'Animals', 'North America', 'Bears'],
+    ['CHI', 'Animals', 'Animals Who Eat Fish', 'Bears'],
     ['NE', 'People', 'People', 'Patriots'],
-    ['BUF', 'Animals', 'Surf & Turf', 'Bills'],
-    ['SEA', 'Animals', 'Birds of Prey', 'Seahawks'],
-    ['LA', 'Animals', 'Surf & Turf', 'Rams'],
-    ['DEN', 'Animals', 'North America', 'Broncos'],
-    ['PHI', 'Animals', 'Birds of Prey', 'Eagles'],
-    ['ATL', 'Animals', 'Birds of Prey', 'Falcons'],
+    ['BUF', 'Animals', 'Animals Who Eat Grass', 'Bills'],
+    ['SEA', 'Animals', 'Animals Who Eat Fish', 'Seahawks'],
+    ['LA', 'Animals', 'Animals Who Eat Grass', 'Rams'],
+    ['DEN', 'Animals', 'Animals Who Eat Grass', 'Broncos'],
+    ['PHI', 'Animals', 'Animals Who Eat Fish', 'Eagles'],
+    ['ATL', 'Animals', "Birds Who Can't Swim", 'Falcons'],
     ['LAC', 'People', 'Violent People', 'Chargers'],
     ['GB', 'People', 'People with Jobs', 'Packers'],
     ['NYJ', 'People', 'Fictional People', 'Jets'],
-    ['IND', 'Animals', 'North America', 'Colts'],
+    ['IND', 'Animals', 'Animals Who Eat Grass', 'Colts'],
     ['NO', 'People', 'Fictional People', 'Saints']
 ]
 
 
-def initialize_realignment(db: Session):
-    """Initialize team realignment data in the database."""
+def initialize_realignment(db: Session, update_existing: bool = False):
+    """
+    Initialize team realignment data in the database.
+    
+    Args:
+        db: Database session
+        update_existing: If True, updates existing records with new data. 
+                        If False (default), only adds new teams.
+    """
     for team_data in REALIGNMENT_DATA:
         team, conference, division, name = team_data
         existing = db.query(TeamRealignment).filter(TeamRealignment.team == team).first()
@@ -57,6 +64,11 @@ def initialize_realignment(db: Session):
                 name=name
             )
             db.add(realignment)
+        elif update_existing:
+            # Update existing record with new data
+            existing.conference = conference
+            existing.division = division
+            existing.name = name
     db.commit()
 
 

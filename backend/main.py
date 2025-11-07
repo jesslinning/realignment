@@ -357,3 +357,43 @@ async def refresh_all_seasons():
             detail=f"Error refreshing all seasons: {str(e)}"
         )
 
+@app.post("/api/refresh-realignment")
+async def refresh_realignment():
+    """
+    Update team realignment data in the database with the latest REALIGNMENT_DATA.
+    This will update existing records with new conference/division assignments.
+    Use this after updating REALIGNMENT_DATA in the code.
+    """
+    try:
+        from database import get_db_session
+        from models import TeamRealignment
+        from services.scraper_service import (
+            initialize_realignment,
+            REALIGNMENT_DATA
+        )
+        
+        db = get_db_session()
+        try:
+            # Update realignment data (including existing records)
+            print("Updating team realignment data...")
+            initialize_realignment(db, update_existing=True)
+            
+            # Count updated records
+            realignment_count = db.query(TeamRealignment).count()
+            
+            return {
+                "success": True,
+                "message": "Realignment data updated successfully",
+                "teams_updated": realignment_count,
+                "total_teams": len(REALIGNMENT_DATA)
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error in refresh-realignment endpoint: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating realignment data: {str(e)}"
+        )
+
