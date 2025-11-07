@@ -11,27 +11,35 @@ from services.standings_service import get_standings, get_available_seasons
 app = FastAPI(title="NFL Standings API")
 
 # Configure CORS - allow requests from frontend
-# Get frontend URL from environment variable, or use wildcard for development
-frontend_url = os.getenv('FRONTEND_URL', '*')
+# Get frontend URL from environment variable
+frontend_url = os.getenv('FRONTEND_URL', '')
 allow_origins = [
     "http://localhost:5173",
     "http://localhost:3000",
 ]
+allow_credentials = True
 
-# Add production frontend URL if specified (should include https://)
-if frontend_url and frontend_url != '*':
+# Add production frontend URL if specified
+if frontend_url:
     # Handle both with and without https://
     if not frontend_url.startswith('http'):
         frontend_url = f"https://{frontend_url}"
     allow_origins.append(frontend_url)
 else:
-    # Use wildcard if not specified (less secure but works for development)
-    allow_origins.append("*")
+    # If FRONTEND_URL is not set, use wildcard but disable credentials
+    # (CORS spec: can't use wildcard with credentials)
+    allow_origins = ["*"]
+    allow_credentials = False
+    print("⚠️ FRONTEND_URL not set - using wildcard CORS (credentials disabled)")
+
+# Print CORS configuration for debugging
+print(f"CORS allow_origins: {allow_origins}")
+print(f"CORS allow_credentials: {allow_credentials}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
