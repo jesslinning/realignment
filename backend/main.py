@@ -308,3 +308,52 @@ async def refresh_standings():
             detail=f"Error refreshing standings: {str(e)}"
         )
 
+@app.post("/api/refresh-all")
+async def refresh_all_seasons():
+    """
+    Manually trigger a full historical scrape of all seasons.
+    This will populate game scores and standings for all available seasons.
+    WARNING: This may take several minutes to complete.
+    """
+    try:
+        from database import get_db_session
+        from models import TeamRealignment
+        from services.scraper_service import (
+            initialize_realignment,
+            scrape_all_seasons,
+            REALIGNMENT_DATA
+        )
+        
+        db = get_db_session()
+        try:
+            # Initialize realignment data if needed
+            realignment_count = db.query(TeamRealignment).count()
+            if realignment_count == 0:
+                initialize_realignment(db)
+            
+            # Scrape all seasons
+            print("Starting full historical scrape (all seasons)...")
+            result = scrape_all_seasons(db)
+            
+            if result['success']:
+                return {
+                    "success": True,
+                    "message": "All seasons scraped successfully",
+                    "records_updated": result.get('records_updated', 0),
+                    "seasons_scraped": result.get('seasons_scraped', '')
+                }
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Refresh failed: {result.get('error', 'Unknown error')}"
+                )
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error in refresh-all endpoint: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error refreshing all seasons: {str(e)}"
+        )
+
