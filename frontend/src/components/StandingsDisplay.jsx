@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import DivisionStandings from './DivisionStandings'
 import ConferenceStandings from './ConferenceStandings'
+import PlayoffStandings from './PlayoffStandings'
 import './StandingsDisplay.css'
 
 // Define custom division order for each conference
@@ -91,6 +92,11 @@ function StandingsDisplay({ standings, season, API_URL }) {
       </div>
       
       <div className="conference-content">
+        <PlayoffStandings
+          conference={activeConference}
+          standings={standings}
+        />
+        
         <div className="conference">
           <div className="divisions">
             {orderedDivisions.map((division) => (

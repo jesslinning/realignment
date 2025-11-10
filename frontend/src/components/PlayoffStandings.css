@@ -1,0 +1,165 @@
+.playoff-standings {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.playoff-standings-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #013369;
+  font-weight: 600;
+  border-bottom: 3px solid #D50A0A;
+  padding-bottom: 0.5rem;
+}
+
+.playoff-standings-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.playoff-standings-table thead {
+  background-color: #013369;
+  color: white;
+}
+
+.playoff-standings-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.playoff-standings-table th:first-child {
+  padding-left: 1rem;
+}
+
+.playoff-standings-table th:last-child {
+  padding-right: 1rem;
+}
+
+.playoff-standings-table tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s;
+}
+
+.playoff-standings-table tbody tr:hover {
+  background-color: #f0f0f0;
+}
+
+.playoff-standings-table tbody tr.division-winner {
+  background-color: #fff8e1;
+  font-weight: 600;
+  border-left: 3px solid #FFB612;
+}
+
+.playoff-standings-table tbody tr.division-winner:hover {
+  background-color: #ffe082;
+}
+
+.playoff-standings-table tbody tr.wild-card {
+  background-color: #e8f4f8;
+}
+
+.playoff-standings-table tbody tr.wild-card:hover {
+  background-color: #d0e8f0;
+}
+
+.playoff-standings-table td {
+  padding: 0.75rem 0.5rem;
+}
+
+.playoff-standings-table td:first-child {
+  padding-left: 1rem;
+}
+
+.playoff-standings-table td:last-child {
+  padding-right: 1rem;
+}
+
+.playoff-standings-table .seed {
+  font-weight: 700;
+  color: #013369;
+  width: 60px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.playoff-standings-table .team-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.playoff-standings-table .team-abbr {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #333;
+}
+
+.playoff-standings-table .team-full {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.playoff-standings-table .division-name {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.playoff-standings-table .team-type {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.playoff-standings-table .win-pct {
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.playoff-standings-table tbody td:not(.team-name):not(.seed):not(.win-pct):not(.division-name):not(.team-type) {
+  text-align: center;
+}
+
+.playoff-standings-table .win-pct {
+  text-align: right;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .playoff-standings {
+    padding: 1rem;
+  }
+  
+  .playoff-standings-title {
+    font-size: 1.2rem;
+  }
+  
+  .playoff-standings-table {
+    font-size: 0.85rem;
+  }
+  
+  .playoff-standings-table th,
+  .playoff-standings-table td {
+    padding: 0.5rem 0.3rem;
+  }
+  
+  .playoff-standings-table th:first-child,
+  .playoff-standings-table td:first-child {
+    padding-left: 0.5rem;
+  }
+  
+  .playoff-standings-table th:last-child,
+  .playoff-standings-table td:last-child {
+    padding-right: 0.5rem;
+  }
+}
+
