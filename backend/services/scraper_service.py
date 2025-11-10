@@ -126,26 +126,103 @@ def create_game_scores_dataframe(scores: pd.DataFrame) -> pd.DataFrame:
     return long_scores
 
 
-def calculate_standings_from_scores(game_scores: pd.DataFrame) -> pd.DataFrame:
+def calculate_standings_from_scores(game_scores: pd.DataFrame, db: Optional[Session] = None) -> pd.DataFrame:
     """
-    Calculate NFL standings from game scores DataFrame.
+    Calculate NFL standings from game scores DataFrame, including in-division standings.
     
     Args:
         game_scores: DataFrame with one row per team per game (from create_game_scores_dataframe)
+        db: Optional database session to get realignment data. If None, in-division stats will be 0.
     
     Returns:
-        DataFrame with standings including wins, losses, ties, and win percentage.
+        DataFrame with standings including wins, losses, ties, win percentage, and in-division stats.
     """
     if game_scores.empty:
-        return pd.DataFrame(columns=['season', 'team', 'is_win', 'is_loss', 'is_tie', 'pct'])
+        return pd.DataFrame(columns=['season', 'team', 'is_win', 'is_loss', 'is_tie', 'pct', 
+                                     'in_division_is_win', 'in_division_is_loss', 'in_division_is_tie', 'in_division_pct'])
     
-    # Calculate standings
+    # Calculate overall standings
     standings = game_scores.groupby(['season', 'team'])[['is_win', 'is_loss', 'is_tie']].sum().reset_index()
     standings['pct'] = (standings['is_win'] + standings['is_tie'] / 2) / (
         standings['is_win'] + standings['is_loss'] + standings['is_tie']
     )
     # Replace any NaN values with 0 (for teams with no games)
     standings['pct'] = standings['pct'].fillna(0.0)
+    
+    # Calculate in-division standings if we have database access
+    if db is not None:
+        # Get realignment data
+        realignments = db.query(TeamRealignment).all()
+        realignment_df = pd.DataFrame([
+            {'team': r.team, 'division': r.division}
+            for r in realignments
+        ])
+        
+        if not realignment_df.empty:
+            # Merge division info for teams
+            game_scores_with_division = game_scores.merge(
+                realignment_df[['team', 'division']],
+                how='left',
+                on='team'
+            )
+            
+            # Merge division info for opponents
+            game_scores_with_division = game_scores_with_division.merge(
+                realignment_df[['team', 'division']].rename(columns={'team': 'opponent', 'division': 'opponent_division'}),
+                how='left',
+                on='opponent'
+            )
+            
+            # Filter to in-division games (where team's division == opponent's division)
+            in_division_games = game_scores_with_division.loc[
+                game_scores_with_division['division'] == game_scores_with_division['opponent_division']
+            ]
+            
+            if not in_division_games.empty:
+                # Calculate in-division standings
+                standings_div = in_division_games.groupby(['season', 'team'])[['is_win', 'is_loss', 'is_tie']].sum().reset_index()
+                standings_div['in_division_pct'] = (standings_div['is_win'] + standings_div['is_tie'] / 2) / (
+                    standings_div['is_win'] + standings_div['is_loss'] + standings_div['is_tie']
+                )
+                standings_div['in_division_pct'] = standings_div['in_division_pct'].fillna(0.0)
+                
+                # Rename columns for merge
+                standings_div = standings_div.rename(columns={
+                    'is_win': 'in_division_is_win',
+                    'is_loss': 'in_division_is_loss',
+                    'is_tie': 'in_division_is_tie'
+                })
+                
+                # Merge with overall standings
+                standings = standings.merge(
+                    standings_div[['season', 'team', 'in_division_is_win', 'in_division_is_loss', 'in_division_is_tie', 'in_division_pct']],
+                    how='left',
+                    on=['season', 'team']
+                )
+            else:
+                # No in-division games, set all to 0
+                standings['in_division_is_win'] = 0
+                standings['in_division_is_loss'] = 0
+                standings['in_division_is_tie'] = 0
+                standings['in_division_pct'] = 0.0
+        else:
+            # No realignment data, set all to 0
+            standings['in_division_is_win'] = 0
+            standings['in_division_is_loss'] = 0
+            standings['in_division_is_tie'] = 0
+            standings['in_division_pct'] = 0.0
+    else:
+        # No database access, set all to 0
+        standings['in_division_is_win'] = 0
+        standings['in_division_is_loss'] = 0
+        standings['in_division_is_tie'] = 0
+        standings['in_division_pct'] = 0.0
+    
+    # Fill any NaN values with 0
+    standings['in_division_is_win'] = standings['in_division_is_win'].fillna(0).astype(int)
+    standings['in_division_is_loss'] = standings['in_division_is_loss'].fillna(0).astype(int)
+    standings['in_division_is_tie'] = standings['in_division_is_tie'].fillna(0).astype(int)
+    standings['in_division_pct'] = standings['in_division_pct'].fillna(0.0)
     
     return standings
 
@@ -212,8 +289,8 @@ def scrape_season(season: Optional[int], db: Session) -> int:
             
             game_scores_updated += 1
         
-        # Calculate standings from game scores
-        standings_df = calculate_standings_from_scores(game_scores_df)
+        # Calculate standings from game scores (pass db for in-division calculations)
+        standings_df = calculate_standings_from_scores(game_scores_df, db)
         
         records_updated = 0
         for _, row in standings_df.iterrows():
@@ -228,6 +305,10 @@ def scrape_season(season: Optional[int], db: Session) -> int:
                 existing.losses = int(row['is_loss']) if pd.notna(row['is_loss']) else 0
                 existing.ties = int(row['is_tie']) if pd.notna(row['is_tie']) else 0
                 existing.win_pct = float(row['pct']) if pd.notna(row['pct']) else 0.0
+                existing.in_division_wins = int(row['in_division_is_win']) if pd.notna(row['in_division_is_win']) else 0
+                existing.in_division_losses = int(row['in_division_is_loss']) if pd.notna(row['in_division_is_loss']) else 0
+                existing.in_division_ties = int(row['in_division_is_tie']) if pd.notna(row['in_division_is_tie']) else 0
+                existing.in_division_win_pct = float(row['in_division_pct']) if pd.notna(row['in_division_pct']) else 0.0
                 existing.last_updated = datetime.utcnow()
             else:
                 new_standing = TeamStanding(
@@ -236,7 +317,11 @@ def scrape_season(season: Optional[int], db: Session) -> int:
                     wins=int(row['is_win']) if pd.notna(row['is_win']) else 0,
                     losses=int(row['is_loss']) if pd.notna(row['is_loss']) else 0,
                     ties=int(row['is_tie']) if pd.notna(row['is_tie']) else 0,
-                    win_pct=float(row['pct']) if pd.notna(row['pct']) else 0.0
+                    win_pct=float(row['pct']) if pd.notna(row['pct']) else 0.0,
+                    in_division_wins=int(row['in_division_is_win']) if pd.notna(row['in_division_is_win']) else 0,
+                    in_division_losses=int(row['in_division_is_loss']) if pd.notna(row['in_division_is_loss']) else 0,
+                    in_division_ties=int(row['in_division_is_tie']) if pd.notna(row['in_division_is_tie']) else 0,
+                    in_division_win_pct=float(row['in_division_pct']) if pd.notna(row['in_division_pct']) else 0.0
                 )
                 db.add(new_standing)
             
@@ -312,8 +397,8 @@ def scrape_all_seasons(db: Session) -> dict:
             
             game_scores_updated += 1
         
-        # Calculate standings from game scores
-        standings_df = calculate_standings_from_scores(game_scores_df)
+        # Calculate standings from game scores (pass db for in-division calculations)
+        standings_df = calculate_standings_from_scores(game_scores_df, db)
         
         records_updated = 0
         for _, row in standings_df.iterrows():
@@ -328,6 +413,10 @@ def scrape_all_seasons(db: Session) -> dict:
                 existing.losses = int(row['is_loss']) if pd.notna(row['is_loss']) else 0
                 existing.ties = int(row['is_tie']) if pd.notna(row['is_tie']) else 0
                 existing.win_pct = float(row['pct']) if pd.notna(row['pct']) else 0.0
+                existing.in_division_wins = int(row['in_division_is_win']) if pd.notna(row['in_division_is_win']) else 0
+                existing.in_division_losses = int(row['in_division_is_loss']) if pd.notna(row['in_division_is_loss']) else 0
+                existing.in_division_ties = int(row['in_division_is_tie']) if pd.notna(row['in_division_is_tie']) else 0
+                existing.in_division_win_pct = float(row['in_division_pct']) if pd.notna(row['in_division_pct']) else 0.0
                 existing.last_updated = datetime.utcnow()
             else:
                 new_standing = TeamStanding(
@@ -336,7 +425,11 @@ def scrape_all_seasons(db: Session) -> dict:
                     wins=int(row['is_win']) if pd.notna(row['is_win']) else 0,
                     losses=int(row['is_loss']) if pd.notna(row['is_loss']) else 0,
                     ties=int(row['is_tie']) if pd.notna(row['is_tie']) else 0,
-                    win_pct=float(row['pct']) if pd.notna(row['pct']) else 0.0
+                    win_pct=float(row['pct']) if pd.notna(row['pct']) else 0.0,
+                    in_division_wins=int(row['in_division_is_win']) if pd.notna(row['in_division_is_win']) else 0,
+                    in_division_losses=int(row['in_division_is_loss']) if pd.notna(row['in_division_is_loss']) else 0,
+                    in_division_ties=int(row['in_division_is_tie']) if pd.notna(row['in_division_is_tie']) else 0,
+                    in_division_win_pct=float(row['in_division_pct']) if pd.notna(row['in_division_pct']) else 0.0
                 )
                 db.add(new_standing)
             

@@ -44,7 +44,11 @@ def get_standings_from_db(season: Optional[int] = None, db: Optional[Session] = 
                 'wins': s.wins,
                 'losses': s.losses,
                 'ties': s.ties,
-                'win_pct': s.win_pct
+                'win_pct': s.win_pct,
+                'in_division_wins': s.in_division_wins,
+                'in_division_losses': s.in_division_losses,
+                'in_division_ties': s.in_division_ties,
+                'in_division_win_pct': s.in_division_win_pct
             }
             for s in standings
         ]
@@ -114,13 +118,20 @@ def get_standings(season: Optional[int] = None, db: Optional[Session] = None) ->
                 'losses': standing['losses'],
                 'ties': standing['ties'],
                 'win_pct': standing['win_pct'],
+                'in_division_wins': standing['in_division_wins'],
+                'in_division_losses': standing['in_division_losses'],
+                'in_division_ties': standing['in_division_ties'],
+                'in_division_win_pct': standing['in_division_win_pct'],
                 'season': standing['season']
             })
         
-        # Sort teams within each division by win percentage
+        # Sort teams within each division by win percentage, then by in-division win percentage as tiebreaker
         for conference in result:
             for division in result[conference]:
-                result[conference][division].sort(key=lambda x: x['win_pct'], reverse=True)
+                result[conference][division].sort(
+                    key=lambda x: (x['win_pct'], x['in_division_win_pct']), 
+                    reverse=True
+                )
         
         return result
     finally:

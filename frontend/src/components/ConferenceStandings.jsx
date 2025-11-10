@@ -75,8 +75,17 @@ function ConferenceStandings({ conference, teams, season, API_URL }) {
     }
   }
 
-  // Sort teams by win percentage (descending)
-  const sortedTeams = [...teams].sort((a, b) => b.win_pct - a.win_pct)
+  // Sort teams by win percentage, then by in-division win percentage as tiebreaker
+  const sortedTeams = [...teams].sort((a, b) => {
+    // First sort by overall win percentage (descending)
+    if (b.win_pct !== a.win_pct) {
+      return b.win_pct - a.win_pct
+    }
+    // If tied, use in-division win percentage as tiebreaker (descending)
+    const aDivPct = a.in_division_win_pct || 0
+    const bDivPct = b.in_division_win_pct || 0
+    return bDivPct - aDivPct
+  })
 
   return (
     <div className="conference-standings">
@@ -143,9 +152,14 @@ function ConferenceStandings({ conference, teams, season, API_URL }) {
                             </thead>
                             <tbody>
                               {teamScores.map((game) => (
-                                <tr key={game.id} className={game.is_win ? 'win' : game.is_loss ? 'loss' : 'tie'}>
+                                <tr key={game.id} className={`${game.is_win ? 'win' : game.is_loss ? 'loss' : 'tie'} ${game.is_division_game ? 'division-game' : ''}`}>
                                   <td>{formatDate(game.gameday)}</td>
-                                  <td className="opponent">{game.opponent || '-'}</td>
+                                  <td className="opponent">
+                                    {game.opponent || '-'}
+                                    {game.is_division_game && (
+                                      <span className="division-badge" title="Division game">DIV</span>
+                                    )}
+                                  </td>
                                   <td className="score">
                                     {game.score} - {game.opponent_score || '-'}
                                   </td>

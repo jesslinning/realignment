@@ -96,6 +96,65 @@ def refresh_standings_job():
 async def startup_event():
     init_db()
     
+    # Run database migration for in-division standings columns
+    try:
+        from sqlalchemy import create_engine, text, inspect
+        import os
+        
+        DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./nfl_standings.db')
+        
+        # Fix postgres:// to postgresql:// if needed
+        if DATABASE_URL.startswith('postgres://'):
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        
+        # Use psycopg driver for PostgreSQL
+        if DATABASE_URL.startswith('postgresql://'):
+            DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://', 1)
+        
+        engine = create_engine(DATABASE_URL)
+        
+        with engine.connect() as conn:
+            # Check if columns already exist
+            if 'sqlite' in DATABASE_URL.lower():
+                # SQLite
+                result = conn.execute(text("PRAGMA table_info(team_standings)"))
+                existing_columns = [row[1] for row in result]
+            else:
+                # PostgreSQL
+                result = conn.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'team_standings'
+                """))
+                existing_columns = [row[0] for row in result]
+            
+            columns_to_add = [
+                ('in_division_wins', 'INTEGER DEFAULT 0'),
+                ('in_division_losses', 'INTEGER DEFAULT 0'),
+                ('in_division_ties', 'INTEGER DEFAULT 0'),
+                ('in_division_win_pct', 'REAL DEFAULT 0.0')
+            ]
+            
+            added_count = 0
+            for col_name, col_def in columns_to_add:
+                if col_name not in existing_columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE team_standings ADD COLUMN {col_name} {col_def}"))
+                        conn.commit()
+                        print(f"✓ Migration: Added column {col_name}")
+                        added_count += 1
+                    except Exception as e:
+                        print(f"⚠ Migration warning for {col_name}: {e}")
+            
+            if added_count > 0:
+                print(f"✓ Database migration complete: Added {added_count} column(s)")
+            else:
+                print("✓ Database migration: All columns already exist")
+    except Exception as e:
+        # Don't fail startup if migration has issues - log it instead
+        print(f"⚠ Database migration check failed (non-critical): {e}")
+        print("  You can run migrate_add_in_division_standings.py manually if needed")
+    
     # Configure scheduler based on environment variable
     # Default: NFL game schedule - multiple runs on game days
     # Format: "hour minute" (e.g., "3 0" for 3:00 AM) or cron expression

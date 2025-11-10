@@ -7,6 +7,18 @@ function DivisionStandings({ conference, division, teams }) {
     return pct.toFixed(3)
   }
 
+  // Sort teams by win percentage, then by in-division win percentage as tiebreaker
+  const sortedTeams = [...teams].sort((a, b) => {
+    // First sort by overall win percentage (descending)
+    if (b.win_pct !== a.win_pct) {
+      return b.win_pct - a.win_pct
+    }
+    // If tied, use in-division win percentage as tiebreaker (descending)
+    const aDivPct = a.in_division_win_pct || 0
+    const bDivPct = b.in_division_win_pct || 0
+    return bDivPct - aDivPct
+  })
+
   return (
     <div className="division-standings">
       <h3 className="division-title">{division}</h3>
@@ -22,7 +34,7 @@ function DivisionStandings({ conference, division, teams }) {
           </tr>
         </thead>
         <tbody>
-          {teams.map((team, index) => (
+          {sortedTeams.map((team, index) => (
             <tr key={team.team} className={index === 0 ? 'leader' : ''}>
               <td className="rank">{index + 1}</td>
               <td className="team-name">

@@ -16,6 +16,10 @@ class TeamStanding(Base):
     losses = Column(Integer, default=0)
     ties = Column(Integer, default=0)
     win_pct = Column(Float, default=0.0)
+    in_division_wins = Column(Integer, default=0)
+    in_division_losses = Column(Integer, default=0)
+    in_division_ties = Column(Integer, default=0)
+    in_division_win_pct = Column(Float, default=0.0)
     last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Ensure unique season/team combination

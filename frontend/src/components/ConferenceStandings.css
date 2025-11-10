@@ -278,6 +278,38 @@
   font-weight: 600;
   color: #333;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.division-badge {
+  display: inline-block;
+  background-color: #013369;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.game-scores-table tbody tr.division-game {
+  border-left: 3px solid #013369;
+}
+
+.game-scores-table tbody tr.division-game.win {
+  border-left-color: #2e7d32;
+}
+
+.game-scores-table tbody tr.division-game.loss {
+  border-left-color: #c62828;
+}
+
+.game-scores-table tbody tr.division-game.tie {
+  border-left-color: #f57c00;
 }
 
 /* Mobile responsive adjustments */
