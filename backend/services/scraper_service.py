@@ -85,9 +85,11 @@ def create_game_scores_dataframe(scores: pd.DataFrame) -> pd.DataFrame:
     scores['gameday'] = pd.to_datetime(scores['gameday'])
     
     # Filter to completed regular season games
-    today = pd.Timestamp.today()
+    # A game is considered completed if both home_score and away_score are not null
+    # This allows us to include games from today that have finished
     scores = scores.loc[
-        (scores['gameday'] < f'{today:%Y-%m-%d}')
+        (scores['home_score'].notna())
+        & (scores['away_score'].notna())
         & (scores['game_type'] == 'REG')
     ]
     
