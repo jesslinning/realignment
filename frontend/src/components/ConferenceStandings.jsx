@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './ConferenceStandings.css'
 
-function ConferenceStandings({ conference, teams, season, API_URL, expandTeam }) {
+function ConferenceStandings({ conference, teams, season, API_URL, expandTeam, onExpandProcessed }) {
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [gameScores, setGameScores] = useState({})
   const [loadingScores, setLoadingScores] = useState({})
@@ -20,6 +20,11 @@ function ConferenceStandings({ conference, teams, season, API_URL, expandTeam })
       if (team) {
         // Expand the team
         setExpandedTeam(expandTeam)
+        
+        // Notify parent that we've processed the expand request
+        if (onExpandProcessed) {
+          onExpandProcessed()
+        }
         
         // Fetch game scores if not already loaded
         if (!gameScores[expandTeam] && season) {
@@ -50,7 +55,7 @@ function ConferenceStandings({ conference, teams, season, API_URL, expandTeam })
         }
       }
     }
-  }, [expandTeam, expandedTeam, teams, gameScores, season, API_URL])
+  }, [expandTeam, expandedTeam, teams, gameScores, season, API_URL, onExpandProcessed])
 
   const formatWinPct = (pct) => {
     if (isNaN(pct) || pct === null) return '0.000'

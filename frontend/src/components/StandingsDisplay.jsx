@@ -162,6 +162,7 @@ function StandingsDisplay({ standings, season, API_URL }) {
           season={season}
           API_URL={API_URL}
           expandTeam={expandTeam}
+          onExpandProcessed={() => setExpandTeam(null)}
         />
       </div>
     </div>
