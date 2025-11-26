@@ -1,7 +1,7 @@
 import React from 'react'
 import './DivisionStandings.css'
 
-function DivisionStandings({ conference, division, teams }) {
+function DivisionStandings({ conference, division, teams, onTeamClick }) {
   const formatWinPct = (pct) => {
     if (isNaN(pct) || pct === null) return '0.000'
     return pct.toFixed(3)
@@ -20,7 +20,10 @@ function DivisionStandings({ conference, division, teams }) {
   })
 
   return (
-    <div className="division-standings">
+    <div 
+      className="division-standings" 
+      id={`division-${conference}-${division}`.replace(/\s+/g, '-')}
+    >
       <h3 className="division-title">{division}</h3>
       <table className="standings-table">
         <thead>
@@ -35,7 +38,17 @@ function DivisionStandings({ conference, division, teams }) {
         </thead>
         <tbody>
           {sortedTeams.map((team, index) => (
-            <tr key={team.team} className={index === 0 ? 'leader' : ''}>
+            <tr 
+              key={team.team} 
+              className={`${index === 0 ? 'leader' : ''} clickable-row`}
+              onClick={() => {
+                if (onTeamClick) {
+                  onTeamClick(team.team)
+                }
+              }}
+              title={`Click to view ${team.team} game scores`}
+              style={{ cursor: 'pointer' }}
+            >
               <td className="rank">{index + 1}</td>
               <td className="team-name">
                 <span className="team-abbr">{team.team}</span>

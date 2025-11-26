@@ -104,6 +104,23 @@
   color: #333;
 }
 
+/* Clickable row styles */
+.playoff-standings-table tbody tr.clickable-row {
+  transition: background-color 0.2s ease;
+}
+
+.playoff-standings-table tbody tr.clickable-row:hover {
+  background-color: #e8f4f8 !important;
+}
+
+.playoff-standings-table tbody tr.division-winner.clickable-row:hover {
+  background-color: #ffe082 !important;
+}
+
+.playoff-standings-table tbody tr.wild-card.clickable-row:hover {
+  background-color: #d0e8f0 !important;
+}
+
 .playoff-standings-table .team-full {
   font-size: 0.85rem;
   color: #666;

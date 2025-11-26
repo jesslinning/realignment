@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import './ConferenceStandings.css'
 
-function ConferenceStandings({ conference, teams, season, API_URL }) {
+function ConferenceStandings({ conference, teams, season, API_URL, expandTeam }) {
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [gameScores, setGameScores] = useState({})
   const [loadingScores, setLoadingScores] = useState({})
@@ -12,6 +12,45 @@ function ConferenceStandings({ conference, teams, season, API_URL }) {
     setGameScores({})
     setLoadingScores({})
   }, [season])
+
+  // Handle external expand request
+  useEffect(() => {
+    if (expandTeam && expandTeam !== expandedTeam) {
+      const team = teams.find(t => t.team === expandTeam)
+      if (team) {
+        // Expand the team
+        setExpandedTeam(expandTeam)
+        
+        // Fetch game scores if not already loaded
+        if (!gameScores[expandTeam] && season) {
+          // Start loading
+          setLoadingScores(prev => ({ ...prev, [expandTeam]: true }))
+          
+          // Fetch game scores
+          const baseUrl = API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : '')
+          const url = `${baseUrl}/api/game-scores?team=${expandTeam}&season=${season}`
+          
+          fetch(url)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`Failed to fetch game scores: ${response.status}`)
+              }
+              return response.json()
+            })
+            .then(data => {
+              setGameScores(prev => ({ ...prev, [expandTeam]: data.game_scores || [] }))
+            })
+            .catch(err => {
+              console.error('Error fetching game scores:', err)
+              setGameScores(prev => ({ ...prev, [expandTeam]: [] }))
+            })
+            .finally(() => {
+              setLoadingScores(prev => ({ ...prev, [expandTeam]: false }))
+            })
+        }
+      }
+    }
+  }, [expandTeam, expandedTeam, teams, gameScores, season, API_URL])
 
   const formatWinPct = (pct) => {
     if (isNaN(pct) || pct === null) return '0.000'
@@ -111,6 +150,7 @@ function ConferenceStandings({ conference, teams, season, API_URL }) {
             return (
               <React.Fragment key={team.team}>
                 <tr 
+                  id={`team-${conference}-${team.team}`.replace(/\s+/g, '-')}
                   className={`${index === 0 ? 'leader' : ''} ${isExpanded ? 'expanded' : ''} clickable-row`}
                   onClick={() => handleTeamClick(team)}
                   style={{ cursor: 'pointer' }}

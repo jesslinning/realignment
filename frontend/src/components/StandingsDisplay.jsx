@@ -42,6 +42,8 @@ const getOrderedDivisions = (conference, standings) => {
 function StandingsDisplay({ standings, season, API_URL }) {
   const conferences = Object.keys(standings).sort()
   const [activeConference, setActiveConference] = useState(conferences[0] || '')
+  const [scrollToTeam, setScrollToTeam] = useState(null)
+  const [expandTeam, setExpandTeam] = useState(null)
 
   // Reset active conference when standings data changes
   useEffect(() => {
@@ -73,6 +75,48 @@ function StandingsDisplay({ standings, season, API_URL }) {
     return allTeams
   }, [activeConference, standings, orderedDivisions])
 
+  // Handle scrolling to a division
+  const handleScrollToDivision = (division) => {
+    const divisionId = `division-${activeConference}-${division}`.replace(/\s+/g, '-')
+    const element = document.getElementById(divisionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // Add a highlight effect
+      element.style.transition = 'background-color 0.3s'
+      element.style.backgroundColor = '#fff8e1'
+      setTimeout(() => {
+        element.style.backgroundColor = ''
+      }, 2000)
+    }
+  }
+
+  // Handle scrolling to a team in overall standings and expanding it
+  const handleScrollToTeam = (teamAbbr) => {
+    setExpandTeam(teamAbbr)
+    setScrollToTeam(teamAbbr)
+  }
+
+  // Effect to scroll to team after state updates
+  useEffect(() => {
+    if (scrollToTeam) {
+      const teamId = `team-${activeConference}-${scrollToTeam}`.replace(/\s+/g, '-')
+      const element = document.getElementById(teamId)
+      if (element) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // Add a highlight effect
+          element.style.transition = 'background-color 0.3s'
+          element.style.backgroundColor = '#e3f2fd'
+          setTimeout(() => {
+            element.style.backgroundColor = ''
+          }, 2000)
+        }, 100)
+      }
+      setScrollToTeam(null)
+    }
+  }, [scrollToTeam, activeConference])
+
   if (conferences.length === 0) {
     return <div className="standings-display">No standings available</div>
   }
@@ -95,6 +139,7 @@ function StandingsDisplay({ standings, season, API_URL }) {
         <PlayoffStandings
           conference={activeConference}
           standings={standings}
+          onTeamClick={handleScrollToDivision}
         />
         
         <div className="conference">
@@ -105,6 +150,7 @@ function StandingsDisplay({ standings, season, API_URL }) {
                 conference={activeConference}
                 division={division}
                 teams={standings[activeConference][division]}
+                onTeamClick={handleScrollToTeam}
               />
             ))}
           </div>
@@ -115,6 +161,7 @@ function StandingsDisplay({ standings, season, API_URL }) {
           teams={allConferenceTeams}
           season={season}
           API_URL={API_URL}
+          expandTeam={expandTeam}
         />
       </div>
     </div>

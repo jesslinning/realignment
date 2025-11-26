@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import './PlayoffStandings.css'
 
-function PlayoffStandings({ conference, standings }) {
+function PlayoffStandings({ conference, standings, onTeamClick }) {
   const formatWinPct = (pct) => {
     if (isNaN(pct) || pct === null) return '0.000'
     return pct.toFixed(3)
@@ -112,7 +112,14 @@ function PlayoffStandings({ conference, standings }) {
           {playoffTeams.map((team) => (
             <tr 
               key={team.team} 
-              className={`${team.isDivisionWinner ? 'division-winner' : 'wild-card'}`}
+              className={`${team.isDivisionWinner ? 'division-winner' : 'wild-card'} clickable-row`}
+              onClick={() => {
+                if (onTeamClick) {
+                  onTeamClick(team.division)
+                }
+              }}
+              title={`Click to view ${team.division} division`}
+              style={{ cursor: 'pointer' }}
             >
               <td className="seed">{team.seed}</td>
               <td className="team-name">
